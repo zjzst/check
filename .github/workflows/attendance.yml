@@ -1,0 +1,38 @@
+name: 打卡入库
+
+on:
+  repository_dispatch:
+    types: [attend]        # 前端 POST 触发
+  workflow_dispatch:       # 手动调试用
+
+permissions:
+  contents: write          # 用 GITHUB_TOKEN 即可写仓库
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 写入记录
+        run: |
+          # 取日期
+          DATE=$(date -d "${{ github.event.client_payload.timestamp }}" '+%Y-%m-%d')
+          mkdir -p attendance
+          FILE="attendance/${DATE}.json"
+
+          # 如果文件不存在，先建空数组
+          [ ! -f "$FILE" ] && echo '[]' > "$FILE"
+
+          # 把新记录追加到数组
+          jq --argjson n '${{ toJson(github.event.client_payload) }}' \
+             '. += [$n]' "$FILE" > tmp && mv tmp "$FILE"
+
+      - name: 提交并推送
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add attendance/
+          git diff --quiet && git diff --staged --quiet || \
+          (git commit -m "打卡 ${{ github.event.client_payload.studentName }}" && git push)
