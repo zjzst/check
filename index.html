@@ -358,24 +358,27 @@
                 }
             }
 
-            async submitAttendance(data) {
-                // 这里需要替换为您的实际后端API地址
-                const API_URL = 'https://your-backend-api.com/attendance';
-                
-                try {
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data)
-                    });
+async submitAttendance(data) {
+  // 1. 生成随机触发令牌（只给 Actions 用，无敏感权限）
+  const TOKEN = 'ghp_' + 'YOUR_PERSONAL_ACCESS_TOKEN'; // 稍后下面教你怎么生成
+  const REPO  = '你的用户名/my-attendance';
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+  // 2. 触发 repository_dispatch
+  await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${TOKEN}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github+json'
+    },
+    body: JSON.stringify({
+      event_type: 'attend',
+      client_payload: data
+    })
+  });
 
-                    return await response.json();
+  return { success: true };
+}
                 } catch (error) {
                     // 如果后端API不可用，这里模拟成功响应
                     console.log('API调用失败，使用模拟数据：', error);
@@ -435,4 +438,5 @@
         });
     </script>
 </body>
+
 </html>
